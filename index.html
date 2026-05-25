@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluación RA5: Incidentes de Ciberseguridad</title>
+<style>
+:root { --bg: #f8f9fa; --card: #ffffff; --primary: #2563eb; --success: #16a34a; --error: #dc2626; --text: #1f2937; --muted: #6b7280; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+body { background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; }
+.container { max-width: 800px; margin: 0 auto; }
+header { text-align: center; margin-bottom: 2rem; padding: 1.5rem; background: var(--card); border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+.progress-bar { width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; margin: 1rem 0; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+.question-card { background: var(--card); padding: 1.5rem; border-radius: 10px; margin-bottom: 1rem; box-shadow: 0 2px 4px rgb(0 0 0 / 0.05); transition: transform 0.2s; }
+.question-card:hover { transform: translateY(-2px); }
+.q-title { font-weight: 600; margin-bottom: 1rem; font-size: 1.1rem; }
+.options { display: grid; gap: 0.5rem; }
+.option-btn { padding: 0.8rem; border: 2px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; text-align: left; transition: all 0.2s; font-size: 0.95rem; }
+.option-btn:hover:not(:disabled) { border-color: var(--primary); background: #f0f7ff; }
+.option-btn.selected-correct { border-color: var(--success); background: #dcfce7; }
+.option-btn.selected-wrong { border-color: var(--error); background: #fee2e2; }
+.option-btn:disabled { cursor: default; opacity: 0.8; }
+.feedback { margin-top: 1rem; padding: 0.8rem; border-radius: 6px; font-size: 0.9rem; display: none; }
+.feedback.show { display: block; }
+.feedback.correct { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.feedback.wrong { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.controls { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; gap: 1rem; flex-wrap: wrap; }
+.btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-secondary { background: #e5e7eb; color: var(--text); }
+.btn-secondary:hover { background: #d1d5db; }
+.btn-retry { background: #f59e0b; color: white; }
+.score-box { background: var(--card); padding: 2rem; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+.score-value { font-size: 3rem; font-weight: bold; color: var(--primary); }
+.hidden { display: none; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+.tag-mc { background: #dbeafe; color: #1e40af; }
+.tag-tf { background: #fce7f3; color: #9d174d; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Evaluación RA5: Incidentes de Ciberseguridad</h1>
+    <p>Detección y documentación de incidentes | 50 preguntas</p>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    <div id="stats">Progreso: <span id="answered">0</span>/50 | Aciertos: <span id="correct">0</span> | Fallos: <span id="wrong">0</span></div>
+  </header>
+
+  <div id="exam-area"></div>
+  <div id="results" class="score-box hidden">
+    <h2>Resultado Final</h2>
+    <div class="score-value" id="final-score">0.0 / 10</div>
+    <p id="score-breakdown"></p>
+    <div class="controls" style="justify-content: center; margin-top: 1rem;">
+      <button class="btn btn-retry" id="retry-btn">Reintentar preguntas falladas</button>
+      <button class="btn btn-secondary" onclick="location.reload()">Reiniciar examen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const examData = {
+  "exam_metadata": {
+    "module": "Incidentes de Ciberseguridad - RA5",
+    "total_questions": 50,
+    "scoring": {
+      "scale": "0-10",
+      "base_points_per_question": 0.2,
+      "penalty_rule": "Cada 3 respuestas incorrectas restan 0.2 puntos (equivalente a 1 correcta). Puntuación mínima: 0."
+    }
+  },
+  "questions": [
+    {"id":1,"type":"multiple_choice","question":"¿Qué organismo actúa como ventanilla única inicial para reportar ciberincidentes?","options":["CSIRT de referencia","AEPD","Ministerio del Interior","Policía Nacional"],"correct_answer":"A","explanation_from_pdf":"El afectado dirige la notificación inicial al CSIRT de referencia (INCIBE-CERT o CCN-CERT), quien gestiona y deriva si procede."},
+    {"id":2,"type":"multiple_choice","question":"¿Quién debe notificar una brecha de datos personales a la autoridad de control?","options":["Encargado del tratamiento","Responsable del tratamiento","Delegado de protección de datos","Auditor externo"],"correct_answer":"B","explanation_from_pdf":"El responsable del tratamiento tiene la obligación legal de notificar la brecha a la autoridad de control competente."},
+    {"id":3,"type":"multiple_choice","question":"¿Qué herramienta AEPD ayuda a valorar la obligación de notificar una brecha?","options":["Comunica Brecha","Asesora Brecha","Panel de Gestión","Registro Público"],"correct_answer":"C","explanation_from_pdf":"Asesora Brecha es el recurso oficial para que organizaciones valoren si deben notificar a la AEPD según el RGPD."},
+    {"id":4,"type":"multiple_choice","question":"¿Cuándo NO es obligatoria la comunicación directa a los afectados?","options":["Si hay riesgo alto","Si medidas técnicas eliminan el riesgo","Si afecta a menos de 100","Si ocurre en fin de semana"],"correct_answer":"D","explanation_from_pdf":"No es necesaria la comunicación si se aplicaron medidas técnicas que hicieron el daño reversible o minimizaron el riesgo."},
+    {"id":5,"type":"multiple_choice","question":"¿Qué figura lidera la protección de datos ante una brecha de seguridad?","options":["Responsable legal","Encargado técnico","Delegado de protección de datos","Director financiero"],"correct_answer":"A","explanation_from_pdf":"El DPD lidera lo relativo a la protección de datos personales como parte de los planes de continuidad y respuesta."},
+    {"id":6,"type":"multiple_choice","question":"¿Cómo debe realizarse preferentemente la notificación de brechas a la AEPD?","options":["Correo electrónico estándar","Formulario en sede electrónica","Burofax urgente","Llamada telefónica"],"correct_answer":"B","explanation_from_pdf":"La AEPD exige el uso del formulario normalizado en su sede electrónica para garantizar validez y evitar sanciones."},
+    {"id":7,"type":"multiple_choice","question":"¿Qué escala de niveles usa el CCN-CERT para clasificar peligrosidad?","options":["Bajo a Crítico (1-5)","Leve a Extremo","Verde a Rojo","Nivel 1 a 10"],"correct_answer":"A","explanation_from_pdf":"El CCN-CERT emplea criterios de peligrosidad del 1 al 5, desde bajo hasta crítico, para la comunicación de incidentes."},
+    {"id":8,"type":"multiple_choice","question":"Si un incidente evoluciona de nivel Bajo a Muy Alto, ¿qué debe hacer la entidad?","options":["Notificar el cambio inmediatamente al CSIRT","Esperar a la notificación final","Borrar los registros antiguos","Cambiar de CSIRT de referencia"],"correct_answer":"D","explanation_from_pdf":"Debe notificar inmediatamente el nuevo nivel al CSIRT, actualizando el incidente e indicando las nuevas evidencias."},
+    {"id":9,"type":"multiple_choice","question":"¿Qué organismo coordina técnicamente la respuesta a incidentes en infraestructuras críticas?","options":["AEPD","CNPIC (pronto CNPREC)","Banco de España","RedIRIS"],"correct_answer":"B","explanation_from_pdf":"El CNPIC (que se transformará en CNPREC) es el órgano de coordinación general para infraestructuras y operadores críticos."},
+    {"id":10,"type":"multiple_choice","question":"¿Qué sistema específico valora y eleva el nivel de protección en infraestructuras críticas?","options":["NAA","NAIC","ENS","NIS2"],"correct_answer":"A","explanation_from_pdf":"El NAIC (Nivel de Alerta de Infraestructuras Críticas) es el sistema específico para valorar y elevar la protección operativa."},
+    {"id":11,"type":"multiple_choice","question":"¿Quién determina la activación de un nivel alto de alerta NAIC?","options":["El operador crítico","La Secretaría de Estado de Seguridad","El CSIRT sectorial","La empresa auditora"],"correct_answer":"C","explanation_from_pdf":"La activación la determina la Secretaría de Estado de Seguridad a través del CNPIC, no el operador por sí solo."},
+    {"id":12,"type":"multiple_choice","question":"¿Qué ocurre si una organización privada no obligada reporta voluntariamente un incidente?","options":["Recibe sanción inmediata","Solo aporta valoración positiva o nula","Debe pagar tasas administrativas","Pierde su certificación de seguridad"],"correct_answer":"D","explanation_from_pdf":"Las actividades de ampliación o reportes voluntarios solo pueden aportar valoración positiva o nula, nunca restan puntos."},
+    {"id":13,"type":"multiple_choice","question":"¿Qué entidad actúa como CSIRT de referencia para ciudadanía y sector privado?","options":["INCIBE-CERT","CCN-CERT","ESP-DEF-CERT","OCC"],"correct_answer":"A","explanation_from_pdf":"INCIBE-CERT es el CSIRT de referencia para el sector privado, ciudadanos y RedIRIS bajo tutela de SEDIA."},
+    {"id":14,"type":"multiple_choice","question":"¿Qué canal usa preferentemente el sector público para notificar al CCN-CERT?","options":["Plataforma LUCIA","Correo postal certificado","Mensajería instantánea","Fax institucional"],"correct_answer":"B","explanation_from_pdf":"El CCN-CERT utiliza la plataforma LUCIA de forma preferente para la gestión y notificación de incidentes en el ámbito público."},
+    {"id":15,"type":"multiple_choice","question":"¿Quién determina si un incidente tiene carácter delictivo y requiere intervención policial?","options":["El CSIRT de referencia","La OCC y CNPIC","La AEPD","El responsable del tratamiento"],"correct_answer":"C","explanation_from_pdf":"Si presenta caracteres delictivos, el CNPIC/OCC da cuenta automáticamente al Ministerio Fiscal y Fuerzas de Seguridad."},
+    {"id":16,"type":"multiple_choice","question":"¿Qué figura notifica al responsable del tratamiento cuando descubre una brecha?","options":["Delegado de protección de datos","Encargado del tratamiento","Auditor externo","Ministerio Fiscal"],"correct_answer":"D","explanation_from_pdf":"El encargado del tratamiento debe notificar sin dilación indebida al responsable con toda la información necesaria."},
+    {"id":17,"type":"multiple_choice","question":"¿Qué herramienta AEPD ayuda a decidir si comunicar la brecha a los afectados?","options":["Asesora Brecha","Comunica Brecha","Panel de Gestión","Registro Público"],"correct_answer":"A","explanation_from_pdf":"Comunica Brecha ofrece ayuda para la toma de decisiones sobre la obligación de informar a las personas afectadas."},
+    {"id":18,"type":"multiple_choice","question":"¿Cómo debe comunicarse una brecha a los afectados si el riesgo es alto?","options":["En lenguaje claro y sencillo","Mediante informe técnico complejo","Solo si lo pide el juzgado","A través de terceros no autorizados"],"correct_answer":"B","explanation_from_pdf":"La comunicación debe realizarse en un lenguaje claro y sencillo, con contenido mínimo obligatorio definido por la AEPD."},
+    {"id":19,"type":"multiple_choice","question":"¿Qué ocurre si un incidente se notifica tarde pero luego se descubre impacto grave?","options":["Se anula la notificación","Se notifica inmediatamente indicando el retraso","No se requiere acción adicional","Se paga una multa automática"],"correct_answer":"D","explanation_from_pdf":"Debe notificarse inmediatamente al CSIRT explicando la fecha original, el motivo del retraso y la información actual."},
+    {"id":20,"type":"multiple_choice","question":"¿Qué entidad supervisa sectores como banca o telecomunicaciones ante incidentes?","options":["AEPD","Autoridad sectorial competente","Policía Nacional","RedIRIS"],"correct_answer":"A","explanation_from_pdf":"Cada sector económico tiene una autoridad supervisora específica (Banco de España, CNMV, etc.) para recibir notificaciones derivadas."},
+    {"id":21,"type":"multiple_choice","question":"¿Qué plazo genérico se indica para notificar brechas a la autoridad de control?","options":["Sin dilación indebida","72 horas exactas","30 días naturales","Inmediatamente tras auditoría"],"correct_answer":"B","explanation_from_pdf":"El RGPD exige notificar sin dilación indebida y, a ser posible, a más tardar en 72 horas desde que se tiene constancia."},
+    {"id":22,"type":"multiple_choice","question":"¿Qué ocurre si la AEPD ordena comunicar una brecha a los afectados?","options":["Se realiza en 30 días","Se puede ignorar","Se pospone indefinidamente","Se notifica solo si hay dinero"],"correct_answer":"A","explanation_from_pdf":"La comunicación debe materializarse sin dilación y confirmarse a la AEPD en el plazo indicado (generalmente 30 días)."},
+    {"id":23,"type":"multiple_choice","question":"¿Qué entidad coordina la ciberseguridad de las Fuerzas Armadas?","options":["INCIBE-CERT","CCN-CERT","ESP-DEF-CERT","OCC"],"correct_answer":"C","explanation_from_pdf":"ESP-DEF-CERT del Mando Conjunto de Ciberdefensa es responsable de redes y sistemas de las Fuerzas Armadas."},
+    {"id":24,"type":"multiple_choice","question":"¿Cómo se reinician los plazos de notificación intermedia y final?","options":["Desde la detección original","Desde la nueva notificación inicial","No se reinician nunca","Dependen del CSIRT"],"correct_answer":"D","explanation_from_pdf":"Los plazos se reinician con la nueva notificación inicial, ya que esta actúa como la primera obligatoria válida."},
+    {"id":25,"type":"multiple_choice","question":"¿Qué debe contener el asunto del correo al CSIRT tras recibir notificación?","options":["Identificador único del incidente","Nombre del director técnico","Fecha de nacimiento del afectado","Contraseña temporal"],"correct_answer":"A","explanation_from_pdf":"El CSIRT asigna un identificador único que debe aparecer en el asunto y no modificarse para no ralentizar la gestión."},
+    {"id":26,"type":"true_false","question":"La notificación voluntaria puede restar puntos o generar sanciones administrativas.","correct_answer":"Falso","explanation_from_pdf":"Las notificaciones voluntarias o ampliaciones solo pueden aportar valoración positiva o nula, nunca restan a la calificación."},
+    {"id":27,"type":"true_false","question":"Un operador de servicios esenciales está obligado a notificar incidentes críticos.","correct_answer":"Verdadero","explanation_from_pdf":"Los incidentes de nivel Crítico, Muy Alto o Alto son de obligada notificación para entidades obligadas bajo normativa."},
+    {"id":28,"type":"true_false","question":"La delegación de funciones en brechas transfiere también la responsabilidad legal.","correct_answer":"Falso","explanation_from_pdf":"El responsable debe asegurarse de que se cumplen las obligaciones, ya que la delegación no implica delegación de responsabilidad."},
+    {"id":29,"type":"true_false","question":"La comunicación a afectados puede posponerse si compromete una investigación.","correct_answer":"Verdadero","explanation_from_pdf":"Puede posponerse bajo supervisión de la Autoridad de Control si compromete el resultado de una investigación en curso."},
+    {"id":30,"type":"true_false","question":"El CCN-CERT utiliza criterios de impacto y peligrosidad para clasificar incidentes.","correct_answer":"Verdadero","explanation_from_pdf":"El CCN-CERT emplea tablas específicas de peligrosidad e impacto para determinar el nivel y la obligatoriedad de notificación."},
+    {"id":31,"type":"true_false","question":"Un incidente con riesgo bajo siempre requiere notificación inmediata a la AEPD.","correct_answer":"Falso","explanation_from_pdf":"Solo se notifica si es probable que la brecha entrañe un riesgo alto para los derechos y libertades de las personas físicas."},
+    {"id":32,"type":"true_false","question":"La OCC actúa como enlace entre CSIRT y Fuerzas de Seguridad del Estado.","correct_answer":"Verdadero","explanation_from_pdf":"La OCC coordina técnicamente y enlaza con las Fuerzas y Cuerpos de Seguridad cuando hay implicaciones de orden público."},
+    {"id":33,"type":"true_false","question":"Notificar una brecha por email estático está permitido como vía principal.","correct_answer":"Falso","explanation_from_pdf":"La AEPD puede considerar defectuosa la notificación por email y exigir el formulario oficial en sede electrónica."},
+    {"id":34,"type":"true_false","question":"El sector público bajo ENS debe notificar incidentes críticos mediante LUCIA.","correct_answer":"Verdadero","explanation_from_pdf":"Las administraciones públicas notifican incidentes de impacto Alto, Muy Alto o Crítico al CCN usando herramientas como LUCIA."},
+    {"id":35,"type":"true_false","question":"Un SIEM permite almacenar datos a largo plazo y generar alertas correlacionadas.","correct_answer":"Verdadero","explanation_from_pdf":"El SIEM combina SIM y SEM para retención, correlación de eventos, alertas y cuadros de mando en tiempo real."},
+    {"id":36,"type":"true_false","question":"La Ley PREC transforma el CNPIC en CNPREC para ampliar el enfoque de resiliencia.","correct_answer":"Verdadero","explanation_from_pdf":"La transposición de la Directiva CER cambia el CNPIC a CNPREC, ampliando protección hacia resiliencia y continuidad operativa."},
+    {"id":37,"type":"true_false","question":"La AEPD es la única autoridad de protección de datos en toda España.","correct_answer":"Falso","explanation_from_pdf":"Andalucía, Cataluña y País Vasco tienen autoridades autonómicas propias (CTPDA, APDCAT, AVPD) para el sector público."},
+    {"id":38,"type":"true_false","question":"La notificación inicial solo debe contener datos definitivos y verificados.","correct_answer":"Falso","explanation_from_pdf":"La notificación inicial consiste en alertar de la existencia del incidente con la información disponible en ese momento."},
+    {"id":39,"type":"true_false","question":"El responsable del tratamiento puede delegar la gestión de brechas en servicios externos.","correct_answer":"Verdadero","explanation_from_pdf":"Puede delegar la gestión y asesorarse en expertos, manteniendo siempre la obligación de asegurar notificaciones oportunas."},
+    {"id":40,"type":"true_false","question":"Un incidente que pasa de Alto a Crítico reinicia todos los plazos desde el cambio.","correct_answer":"Falso","explanation_from_pdf":"Los plazos de notificación intermedia y final se calculan desde la notificación inicial original, no desde el aumento de impacto."},
+    {"id":41,"type":"true_false","question":"La falta de medidas de detección oportunas puede interpretarse como incumplimiento.","correct_answer":"Verdadero","explanation_from_pdf":"Si no existían medidas de detección proporcionales, las autoridades pueden interpretarlo como incumplimiento de gestión de riesgos."},
+    {"id":42,"type":"true_false","question":"La comunicación pública a afectados solo se usa cuando el esfuerzo directo es desproporcionado.","correct_answer":"Verdadero","explanation_from_pdf":"Se permite comunicación indirecta (avisos públicos) si contactar directamente implica un esfuerzo desproporcionado frente al riesgo."},
+    {"id":43,"type":"true_false","question":"El identificador único del CSIRT puede eliminarse una vez resuelto el incidente.","correct_answer":"Falso","explanation_from_pdf":"El identificador único debe mantenerse en todas las comunicaciones y no eliminarse para garantizar trazabilidad y gestión eficaz."},
+    {"id":44,"type":"true_false","question":"La AEPD abre procedimiento sancionador en la mayoría de notificaciones recibidas.","correct_answer":"Falso","explanation_from_pdf":"La AEPD abre procedimientos sancionadores en un porcentaje muy bajo (aprox. 0,4%) si la notificación demuestra diligencia proactiva."},
+    {"id":45,"type":"true_false","question":"La obligación de notificar a la AEPD aplica solo a operadores de servicios esenciales.","correct_answer":"Falso","explanation_from_pdf":"Aplica a TODAS las empresas y administraciones que traten datos personales si existe riesgo, independientemente del nivel del incidente."},
+    {"id":46,"type":"true_false","question":"El CCN-CERT y la OCC son suprimidos por la entrada en vigor de la Ley PREC.","correct_answer":"Falso","explanation_from_pdf":"No se menciona su supresión ni cambio de nombre; mantienen su rol de respuesta a incidentes y coordinación técnica."},
+    {"id":47,"type":"true_false","question":"La notificación intermedia sirve para actualizar datos relativos al incidente en curso.","correct_answer":"Verdadero","explanation_from_pdf":"La notificación intermedia consiste en actualizar datos relativos al incidente mientras se gestiona su resolución."},
+    {"id":48,"type":"true_false","question":"Un incidente con nivel Bajo nunca requiere acción interna por parte del SOC.","correct_answer":"Falso","explanation_from_pdf":"Incluso incidentes de nivel bajo deben monitorizarse y analizarse internamente, ya que pueden evolucionar o ser indicio de APTs."},
+    {"id":49,"type":"true_false","question":"La AEPD puede requerir información adicional tras recibir una notificación de brecha.","correct_answer":"Verdadero","explanation_from_pdf":"La AEPD puede solicitar datos complementarios necesarios, que el responsable deberá remitir como respuesta a esos requerimientos."},
+    {"id":50,"type":"true_false","question":"El SIEM es la principal herramienta utilizada en los SOC para detección y respuesta.","correct_answer":"Verdadero","explanation_from_pdf":"El SIEM centraliza eventos, correlaciona alertas y permite análisis forense, siendo clave en la operativa diaria de los SOC."}
+  ]
+};
+
+// Lógica de la aplicación
+let currentQuestions = [...examData.questions];
+let answers = {};
+let failedQuestions = [];
+let progressIndex = 0;
+
+const examArea = document.getElementById('exam-area');
+const progressBar = document.getElementById('progress');
+const answeredEl = document.getElementById('answered');
+const correctEl = document.getElementById('correct');
+const wrongEl = document.getElementById('wrong');
+const resultsDiv = document.getElementById('results');
+const finalScoreEl = document.getElementById('final-score');
+const scoreBreakdown = document.getElementById('score-breakdown');
+const retryBtn = document.getElementById('retry-btn');
+
+function renderQuestions() {
+  examArea.innerHTML = '';
+  currentQuestions.forEach(q => {
+    if (answers[q.id] !== undefined) return; // Skip answered
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.innerHTML = `
+      <span class="tag ${q.type === 'multiple_choice' ? 'tag-mc' : 'tag-tf'}">${q.type === 'multiple_choice' ? 'TEST' : 'VERDADERO/FALSO'}</span>
+      <div class="q-title">${q.id}. ${q.question}</div>
+      <div class="options" id="opts-${q.id}"></div>
+      <div class="feedback" id="fb-${q.id}"></div>
+    `;
+    examArea.appendChild(card);
+
+    const optsContainer = document.getElementById(`opts-${q.id}`);
+    const opts = q.type === 'multiple_choice' ? q.options : ['Verdadero', 'Falso'];
+    
+    opts.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(q, opt, btn);
+      optsContainer.appendChild(btn);
+    });
+  });
+
+  updateProgress();
+  checkCompletion();
+}
+
+function handleAnswer(q, selected, btnElement) {
+  if (answers[q.id] !== undefined) return;
+  
+  const isCorrect = (q.type === 'multiple_choice' ? selected === q.options[q.options.indexOf(q.correct_answer)] : selected === q.correct_answer);
+  answers[q.id] = isCorrect ? 'correct' : 'wrong';
+  
+  if (!isCorrect) failedQuestions.push(q);
+  
+  // UI feedback
+  const container = document.getElementById(`opts-${q.id}`);
+  Array.from(container.children).forEach(b => {
+    b.disabled = true;
+    const optText = b.textContent;
+    const correctVal = q.type === 'multiple_choice' ? q.options[q.options.indexOf(q.correct_answer)] : q.correct_answer;
+    if (optText === correctVal) b.classList.add('selected-correct');
+    if (b === btnElement && !isCorrect) b.classList.add('selected-wrong');
+  });
+
+  const fb = document.getElementById(`fb-${q.id}`);
+  fb.className = `feedback show ${isCorrect ? 'correct' : 'wrong'}`;
+  fb.innerHTML = `<strong>${isCorrect ? '✅ Correcto' : '❌ Incorrecto'}</strong><br>${q.explanation_from_pdf}`;
+
+  updateProgress();
+  checkCompletion();
+}
+
+function updateProgress() {
+  const answered = Object.keys(answers).length;
+  const total = currentQuestions.length;
+  progressBar.style.width = `${(answered / total) * 100}%`;
+  
+  let correct = 0, wrong = 0;
+  Object.values(answers).forEach(a => a === 'correct' ? correct++ : wrong++);
+  
+  answeredEl.textContent = answered;
+  correctEl.textContent = correct;
+  wrongEl.textContent = wrong;
+}
+
+function checkCompletion() {
+  if (Object.keys(answers).length === currentQuestions.length) {
+    calculateScore();
+    resultsDiv.classList.remove('hidden');
+    window.scrollTo({ top: resultsDiv.offsetTop - 50, behavior: 'smooth' });
+  }
+}
+
+function calculateScore() {
+  let correct = 0, wrong = 0;
+  Object.values(answers).forEach(a => a === 'correct' ? correct++ : wrong++);
+  
+  const penalty = Math.floor(wrong / 3) * 0.2;
+  const rawScore = Math.max(0, (correct * 0.2) - penalty);
+  const finalScore = Math.min(10, rawScore);
+  
+  finalScoreEl.textContent = `${finalScore.toFixed(1)} / 10`;
+  scoreBreakdown.innerHTML = `
+    Aciertos: <strong>${correct}</strong> | Fallos: <strong>${wrong}</strong><br>
+    Penalización aplicada: <strong>-${penalty.toFixed(1)} pts</strong> (${Math.floor(wrong/3)} grupos de 3 fallos)
+  `;
+  
+  retryBtn.style.display = failedQuestions.length > 0 ? 'block' : 'none';
+  retryBtn.onclick = retryFailed;
+}
+
+function retryFailed() {
+  if (failedQuestions.length === 0) return;
+  currentQuestions = [...failedQuestions];
+  answers = {};
+  failedQuestions = [];
+  resultsDiv.classList.add('hidden');
+  renderQuestions();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Init
+renderQuestions();
+</script>
+</body>
+</html>
